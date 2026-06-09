@@ -15,7 +15,7 @@
             <p class="text-sm text-slate-500 mt-1">Live search inside Master_Data database</p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xs border border-slate-100 p-5 mb-6">
+        <div id="searchContainer" class="bg-white rounded-2xl shadow-xs border border-slate-100 p-5 mb-6">
             <form id="lookupForm" onsubmit="handleLookup(event)" class="space-y-4">
                 
                 <div>
@@ -80,6 +80,10 @@
                     <span id="resTimestamp" class="text-xs text-slate-500 font-medium"></span>
                 </div>
             </div>
+
+            <button type="button" onclick="resetSearch()" class="w-full mt-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium text-sm py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer">
+                ← Back to Search
+            </button>
         </div>
 
     </main>
@@ -89,7 +93,6 @@
     </footer>
 
     <script>
-        // Replace with your real URL generated during deployment
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzRIdRJr8-gPC0oMIYqqawhkbMuCRHUL7p7MSVEr6KVlbiyRNhCR-URm5m0QGL1h_TO/exec';
 
         async function handleLookup(event) {
@@ -98,6 +101,7 @@
             const facility = document.getElementById('facility').value;
             const idNumber = document.getElementById('idNumber').value.trim();
             
+            const searchContainer = document.getElementById('searchContainer');
             const submitBtn = document.getElementById('submitBtn');
             const btnText = document.getElementById('btnText');
             const alertBox = document.getElementById('alertBox');
@@ -112,7 +116,6 @@
             resultContainer.classList.add('hidden');
 
             try {
-                // Construct URL variables dynamically
                 const targetUrl = `${WEB_APP_URL}?id=${encodeURIComponent(idNumber)}&facility=${encodeURIComponent(facility)}`;
                 
                 const response = await fetch(targetUrl);
@@ -121,7 +124,7 @@
                 if (result.status === "success") {
                     const record = result.data;
 
-                    // Fill standard elements
+                    // Fill data elements
                     document.getElementById('resName').textContent = record.name || "N/A";
                     document.getElementById('resDesignation').textContent = record.designation || "N/A";
                     document.getElementById('resID').textContent = record.id;
@@ -129,7 +132,7 @@
                     document.getElementById('resStatus').textContent = record.status || "N/A";
                     document.getElementById('resTimestamp').textContent = record.timestamp || "N/A";
 
-                    // Handle Dose Status Badge colors
+                    // Dose Status Badge styling
                     const badge = document.getElementById('badgeDose');
                     badge.textContent = record.dose || "0 (None)";
                     if (badge.textContent.includes('1 Dose')) {
@@ -140,7 +143,7 @@
                         badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200";
                     }
 
-                    // Dynamically reveal or hide Thaana notes row
+                    // Handle Thaana text row layout
                     const thaanaRow = document.getElementById('thaanaRow');
                     if (record.thaana && record.thaana.toString().trim() !== "") {
                         document.getElementById('resThaana').textContent = record.thaana;
@@ -149,6 +152,8 @@
                         thaanaRow.classList.add('hidden');
                     }
 
+                    // SUCCESS STATE: Hide search fields completely, reveal cards
+                    searchContainer.classList.add('hidden');
                     resultContainer.classList.remove('hidden');
                 } else if (result.status === "notFound") {
                     alertMessage.textContent = "No record found matching those details.";
@@ -163,11 +168,19 @@
                 alertBox.classList.remove('hidden');
                 console.error(error);
             } finally {
-                // Reset form button state
+                // Reset form button layout state
                 btnText.textContent = "Verify Registration";
                 submitBtn.disabled = false;
                 submitBtn.classList.remove('opacity-75');
             }
+        }
+
+        // Restores fields for a clean query session
+        function resetSearch() {
+            document.getElementById('lookupForm').reset();
+            document.getElementById('resultContainer').classList.add('hidden');
+            document.getElementById('alertBox').classList.add('hidden');
+            document.getElementById('searchContainer').classList.remove('hidden');
         }
     </script>
 </body>

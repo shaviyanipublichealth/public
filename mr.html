@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Registry Verification</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+
+    <main class="w-full max-w-md mx-auto p-4 sm:p-6 flex-grow">
+        
+        <div class="text-center my-6">
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">Staff Registry Verification</h1>
+            <p class="text-sm text-slate-500 mt-1">Live search inside Master_Data database</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-100 p-5 mb-6">
+            <form id="lookupForm" onsubmit="handleLookup(event)" class="space-y-4">
+                
+                <div>
+                    <label for="facility" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Facility Name *</label>
+                    <select id="facility" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all appearance-none">
+                        <option value="" disabled selected>Select Facility</option>
+                        <option value="Sh. Atoll Hospital , Funadhoo">Sh. Atoll Hospital , Funadhoo</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="idNumber" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">ID / Passport Number *</label>
+                    <input type="text" id="idNumber" required placeholder="e.g. A140686" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all uppercase">
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-3.5 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <span id="btnText">Verify Registration</span>
+                </button>
+            </form>
+        </div>
+
+        <div id="alertBox" class="hidden bg-rose-50 border border-rose-100 rounded-xl p-4 mb-6 text-center">
+            <p id="alertMessage" class="text-sm font-medium text-rose-600"></p>
+        </div>
+
+        <div id="resultContainer" class="hidden space-y-4">
+            <div class="flex items-center justify-between px-1">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Registration Found</h2>
+                <span id="badgeDose" class="text-xs font-semibold px-2.5 py-1 rounded-full"></span>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
+                <div class="bg-slate-900 px-5 py-4 text-white">
+                    <p id="resName" class="font-bold text-base leading-tight"></p>
+                    <p id="resDesignation" class="text-xs text-slate-400 mt-0.5 font-medium tracking-wide"></p>
+                </div>
+
+                <div class="p-5 space-y-3.5 text-sm">
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                        <span class="text-slate-400 text-xs">ID / Passport</span>
+                        <span id="resID" class="font-mono font-semibold text-slate-700"></span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                        <span class="text-slate-400 text-xs">Facility</span>
+                        <span id="resFacility" class="font-medium text-slate-700 text-right max-w-[60%] truncate"></span>
+                    </div>
+
+                    <div class="flex justify-between items-start pb-2 border-b border-slate-100">
+                        <span class="text-slate-400 text-xs mt-0.5">Status/Reason</span>
+                        <span id="resStatus" class="font-medium text-slate-700 text-right max-w-[60%]"></span>
+                    </div>
+
+                    <div id="thaanaRow" class="hidden flex justify-between items-start pt-1">
+                        <span class="text-slate-400 text-xs mt-0.5">Notes (ތަފްސީލް)</span>
+                        <span id="resThaana" class="font-medium text-slate-800 text-right text-base bg-slate-50 px-3 py-1 rounded-lg border border-slate-100" dir="rtl"></span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-between items-center">
+                    <span class="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Submission Date</span>
+                    <span id="resTimestamp" class="text-xs text-slate-500 font-medium"></span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="w-full text-center py-4 text-[11px] text-slate-400 font-medium tracking-wide border-t border-slate-100 bg-white">
+        System Tab Reference: Master_Data
+    </footer>
+
+    <script>
+        // Replace with your real URL generated during deployment
+        const WEB_APP_URL = 'YOUR_DEPLOYED_WEB_APP_URL_HERE';
+
+        async function handleLookup(event) {
+            event.preventDefault();
+
+            const facility = document.getElementById('facility').value;
+            const idNumber = document.getElementById('idNumber').value.trim();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const alertBox = document.getElementById('alertBox');
+            const alertMessage = document.getElementById('alertMessage');
+            const resultContainer = document.getElementById('resultContainer');
+
+            // Set loading state
+            btnText.textContent = "Verifying Record...";
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-75');
+            alertBox.classList.add('hidden');
+            resultContainer.classList.add('hidden');
+
+            try {
+                // Construct URL variables dynamically
+                const targetUrl = `${WEB_APP_URL}?id=${encodeURIComponent(idNumber)}&facility=${encodeURIComponent(facility)}`;
+                
+                const response = await fetch(targetUrl);
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    const record = result.data;
+
+                    // Fill standard elements
+                    document.getElementById('resName').textContent = record.name || "N/A";
+                    document.getElementById('resDesignation').textContent = record.designation || "N/A";
+                    document.getElementById('resID').textContent = record.id;
+                    document.getElementById('resFacility').textContent = record.facility;
+                    document.getElementById('resStatus').textContent = record.status || "N/A";
+                    document.getElementById('resTimestamp').textContent = record.timestamp || "N/A";
+
+                    // Handle Dose Status Badge colors
+                    const badge = document.getElementById('badgeDose');
+                    badge.textContent = record.dose || "0 (None)";
+                    if (badge.textContent.includes('1 Dose')) {
+                        badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200";
+                    } else if (badge.textContent.includes('0 (None)')) {
+                        badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200";
+                    } else {
+                        badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200";
+                    }
+
+                    // Dynamically reveal or hide Thaana notes row
+                    const thaanaRow = document.getElementById('thaanaRow');
+                    if (record.thaana && record.thaana.toString().trim() !== "") {
+                        document.getElementById('resThaana').textContent = record.thaana;
+                        thaanaRow.classList.remove('hidden');
+                    } else {
+                        thaanaRow.classList.add('hidden');
+                    }
+
+                    resultContainer.classList.remove('hidden');
+                } else if (result.status === "notFound") {
+                    alertMessage.textContent = "No record found matching those details.";
+                    alertBox.classList.remove('hidden');
+                } else {
+                    alertMessage.textContent = `Error: ${result.message || "Unknown error occurred"}`;
+                    alertBox.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                alertMessage.textContent = "Network error. Failed to reach verification system backend.";
+                alertBox.classList.remove('hidden');
+                console.error(error);
+            } finally {
+                // Reset form button state
+                btnText.textContent = "Verify Registration";
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-75');
+            }
+        }
+    </script>
+</body>
+</html>
